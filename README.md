@@ -13,20 +13,22 @@
 ## Cloud Architecture (AWS Serverless + Dual-Mode Local Resilience)
 
 ```text
-[Citizen / Admin Web App (frontend/index.html — Amazon S3 Static Hosting or Local)]
-                                    │
-                                    ▼  (HTTPS + CORS)
-                        [Amazon API Gateway (REST/HTTP)]
-                                    │
-                                    ▼
-              [AWS Lambda (Python 3.12 — backend/lambda_function.py)]
-               (Mirrored locally by backend/local_server.py FastAPI)
-                 ├──► [Amazon S3]          (Stores uploaded issue photos; local preview fallback)
-                 ├──► [Gemini Vision API]  (gemini-2.5-flash authenticity + severity + Q&A)
-                 │        └──► [Local Rule Fallback] (Deterministic keyword & hotspot scorer)
-                 ├──► [Amazon DynamoDB]    (Tickets, GPS, Priority Score, Status; JSON fallback)
-                 ├──► [Amazon SNS]         (Citizen status update alerts; local SNS audit log)
-                 └──► [Amazon CloudWatch]  (Structured JSON logs for Lambda latency & triage)
+[Citizen Portal — S3 Bucket A]       [Municipal Ops Console — S3 Bucket B]
+   (frontend/index.html)                    (frontend/admin.html)
+             │                                        │
+             └───────────────────┬────────────────────┘
+                                 ▼  (HTTPS + CORS)
+                     [Amazon API Gateway (REST/HTTP)]
+                                 │
+                                 ▼
+           [AWS Lambda (Python 3.12 — backend/lambda_function.py)]
+            (Mirrored locally by backend/local_server.py FastAPI)
+              ├──► [Amazon S3]          (Stores uploaded issue photos; local preview fallback)
+              ├──► [Gemini Vision API]  (gemini-2.5-flash authenticity + severity + Q&A)
+              │        └──► [Local Rule Fallback] (Deterministic keyword & hotspot scorer)
+              ├──► [Amazon DynamoDB]    (Tickets, GPS, Priority Score, Status; JSON fallback)
+              ├──► [Amazon SNS]         (Citizen status update alerts; local SNS audit log)
+              └──► [Amazon CloudWatch]  (Structured JSON logs for Lambda latency & triage)
 ```
 
 ---
@@ -48,9 +50,12 @@
 
 ```text
 ├── frontend/
-│   ├── index.html             # Tab 1: Citizen Portal | Tab 2: Admin Dashboard | AI Co-Pilot
-│   ├── styles.css             # Responsive dark-slate command center UI
-│   └── app.js                 # Landmark presets, GPS, photo preview, triage & Q&A logic
+│   ├── index.html             # Citizen 311 Portal (Independent S3 Hosting Ready)
+│   ├── admin.html             # Municipal Operations Console (Separate S3 Hosting Ready)
+│   ├── styles.css             # Enterprise GovTech design system
+│   ├── shared.js              # Shared API Gateway client & utilities
+│   ├── citizen.js             # Citizen map picker, drag-drop upload & status lookup
+│   └── admin.js               # Operations map, priority queue, inspector & SNS audit
 ├── backend/
 │   ├── core/
 │   │   ├── triage.py          # Gemini Vision + Local Rule Fallback + 150m Haversine merger
@@ -80,7 +85,11 @@ pip install -r requirements.txt
 
 uvicorn local_server:app --reload --port 8000
 ```
-Open **`http://localhost:8000`** in your browser — FastAPI serves both the API and `frontend/index.html` automatically.
+Open **`http://localhost:8000`** for the Citizen Portal and **`http://localhost:8000/admin`** for the dedicated Municipal Operations Console.
+
+### 2. Separate S3 Hosting (Production)
+- **Citizen Portal Bucket**: Upload `index.html`, `styles.css`, `shared.js`, `citizen.js` -> set your API Gateway URL via **API Endpoint** in the header.
+- **Municipal Operations Bucket**: Upload `admin.html` (as index document or `/admin.html`), `styles.css`, `shared.js`, `admin.js` -> set the same API Gateway URL in **Cloud & API Settings**.
 
 ### 2. Run Automated Tests (`pytest`)
 From the repository root:

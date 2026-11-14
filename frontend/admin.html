@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CivicSignal Operations — Municipal Dispatch &amp; Triage Console</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <!-- Left Navigation Rail -->
+    <aside class="admin-rail">
+      <div>
+        <div class="rail-brand">
+          <div class="brand-mark" style="background:#0f766e;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <div class="rail-brand-title">CivicSignal Ops</div>
+            <div class="rail-brand-sub">Municipal Command</div>
+          </div>
+        </div>
+
+        <nav class="rail-nav">
+          <button class="rail-btn active" data-view="view-dispatch" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dispatch Queue
+          </button>
+          <button class="rail-btn" data-view="view-sns" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            SNS Alert Audit
+          </button>
+          <button class="rail-btn" data-view="view-analyst" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            AI Operations Analyst
+          </button>
+          <button class="rail-btn" data-view="view-settings" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.78 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Cloud &amp; API Settings
+          </button>
+        </nav>
+      </div>
+
+      <div>
+        <a href="index.html" class="rail-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Citizen Public Portal
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Operations Workspace -->
+    <main class="admin-content">
+      <div class="admin-topbar">
+        <div>
+          <h1 id="view-heading">Municipal Dispatch Queue</h1>
+          <div style="font-size:12.5px;color:var(--ink-muted);">Real-time hazard prioritization, 150m geo-cluster aggregation &amp; crew routing</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="status-dot-pill">
+            <span id="ops-dot" class="status-dot"></span>
+            <span id="ops-engine-text">Connecting...</span>
+          </span>
+          <button id="ops-refresh-btn" class="btn btn-outline btn-sm" type="button">Sync Queue</button>
+        </div>
+      </div>
+
+      <!-- VIEW 1: DISPATCH QUEUE -->
+      <section id="view-dispatch" class="admin-view">
+        <div class="kpi-strip">
+          <div class="kpi-box">
+            <div class="kpi-label">Active Queue (Open / In Progress)</div>
+            <div id="kpi-open" class="kpi-number">0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Critical Hazards (&ge;80 Score)</div>
+            <div id="kpi-crit" class="kpi-number" style="color:var(--crit-ink);">0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Aggregated Citizen Reports</div>
+            <div id="kpi-reports" class="kpi-number" style="color:var(--brand);">0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">SNS Dispatches Sent</div>
+            <div id="kpi-alerts" class="kpi-number">0</div>
+          </div>
+        </div>
+
+        <div class="ops-grid">
+          <!-- Left: Map + Priority Queue Table -->
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Geospatial Hotspot Map (150m Cluster Radius)</h2>
+                <span style="font-size:12px;color:var(--ink-muted);">Click a pin to inspect ticket</span>
+              </div>
+              <div class="panel-body" style="padding:12px;">
+                <div id="admin-map" class="map-container" style="height:260px;"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header" style="flex-wrap:wrap;">
+                <h2>Priority Triage Queue</h2>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <input id="ops-search" type="text" placeholder="Filter ID or street..." style="width:170px;padding:6px 10px;" />
+                  <select id="ops-dept-filter" style="width:155px;padding:6px 10px;">
+                    <option value="ALL">All Departments</option>
+                    <option value="Highways / Roads">Highways / Roads</option>
+                    <option value="Sanitation">Sanitation</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Metro Water">Metro Water</option>
+                  </select>
+                  <select id="ops-status-filter" style="width:130px;padding:6px 10px;">
+                    <option value="ALL">All Statuses</option>
+                    <option value="OPEN">Open</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Resolved</option>
+                  </select>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="ops-table">
+                  <thead>
+                    <tr>
+                      <th>Ticket</th>
+                      <th>Hazard &amp; Location</th>
+                      <th>Department</th>
+                      <th>Cluster</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ops-table-body">
+                    <tr><td colspan="6" style="color:var(--ink-muted);text-align:center;padding:24px;">Loading dispatch queue...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Ticket Inspector Panel -->
+          <aside class="panel" style="position:sticky;top:22px;">
+            <div class="panel-header">
+              <h2>Ticket Inspector</h2>
+              <span id="inspector-id" class="mono" style="font-size:12px;color:var(--ink-muted);">Select a row</span>
+            </div>
+            <div id="inspector-body" class="panel-body">
+              <div style="padding:28px 10px;text-align:center;color:var(--ink-muted);font-size:13px;">
+                Select any ticket from the Priority Triage Queue or map to review photographic evidence, AI triage rationale, and dispatch actions.
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- VIEW 2: SNS ALERT AUDIT -->
+      <section id="view-sns" class="admin-view" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Amazon SNS Citizen Notification Audit Log</h2>
+            <span id="sns-channel-pill" class="badge badge-MODERATE">SNS Channel</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="ops-table">
+              <thead>
+                <tr>
+                  <th>Alert ID</th>
+                  <th>Ticket</th>
+                  <th>Status</th>
+                  <th>Channel</th>
+                  <th>Recipient</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody id="sns-audit-body">
+                <tr><td colspan="6" style="color:var(--ink-muted);text-align:center;padding:24px;">No SNS alerts dispatched yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: AI OPERATIONS ANALYST -->
+      <section id="view-analyst" class="admin-view" style="display:none;">
+        <div class="panel" style="max-width:860px;">
+          <div class="panel-header">
+            <h2>Operations AI Analyst</h2>
+            <span style="font-size:12px;color:var(--ink-muted);">Grounded strictly in live municipal ticket telemetry</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+              <button type="button" class="chip-btn ops-prompt" data-q="Which ward or area has the most unresolved high-priority complaints right now?">Identify Critical Hotspots</button>
+              <button type="button" class="chip-btn ops-prompt" data-q="Draft an urgent work-order notice for the top pothole ticket.">Draft Pothole Work Order</button>
+              <button type="button" class="chip-btn ops-prompt" data-q="Generate a repair dispatch summary for top 3 tickets.">Top 3 Crew Dispatch Summary</button>
+            </div>
+            <div id="ops-chat-feed" class="chat-feed">
+              <div class="msg-bubble msg-ai">
+                Ask for ward hotspot summaries, crew dispatch briefings, or formal work-order notices based on active tickets.
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <input id="ops-chat-input" type="text" placeholder="Enter operational query..." style="flex:1;" />
+              <button id="ops-chat-send" class="btn btn-primary" type="button">Run Analysis</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: CLOUD & API SETTINGS -->
+      <section id="view-settings" class="admin-view" style="display:none;">
+        <div class="split-2" style="max-width:920px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="panel">
+            <div class="panel-header"><h2>API Gateway &amp; Hosting Endpoint</h2></div>
+            <div class="panel-body">
+              <p style="margin:0 0 12px;font-size:13px;color:var(--ink-muted);">
+                When hosting this Admin Console on a separate S3 bucket from the Citizen Portal, set your shared Amazon API Gateway Invoke URL here.
+              </p>
+              <label class="field-label" for="ops-api-input">Backend Base URL</label>
+              <input id="ops-api-input" type="url" placeholder="https://xxxxxxxx.execute-api.ap-south-1.amazonaws.com/prod" />
+              <button id="ops-save-api" class="btn btn-primary btn-sm" style="margin-top:12px;" type="button">Save &amp; Reconnect</button>
+              <div id="ops-settings-notice" class="notice"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header"><h2>Infrastructure Diagnostics</h2></div>
+            <div class="panel-body">
+              <div id="cloud-diag-box" style="font-size:13px;color:var(--ink-secondary);line-height:1.7;">
+                Checking AWS &amp; AI endpoints...
+              </div>
+              <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;" />
+              <div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px;">
+                Optional empty-state initialization for staging environments:
+              </div>
+              <button id="ops-seed-btn" class="btn btn-outline btn-sm" type="button">Populate Baseline Municipal Tickets</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="shared.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
