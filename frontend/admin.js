@@ -38,7 +38,7 @@
 
   const VIEW_TITLES = {
     "view-dispatch": "Municipal Dispatch Queue",
-    "view-sns": "Amazon SNS Notification Audit",
+    "view-sns": "Citizen Notification Audit",
     "view-analyst": "Operations AI Analyst",
     "view-settings": "Cloud & API Configuration"
   };
@@ -69,13 +69,13 @@
       const d = res.data;
       els.opsDot.classList.remove("offline");
       els.opsEngineText.textContent = d.active_ai_engine || "Operational";
-      els.snsChannelPill.textContent = d.cloud?.sns_mode || "SNS Audit";
+      els.snsChannelPill.textContent = d.cloud?.notification_mode || d.cloud?.sns_mode || "Notification Channel";
       els.cloudDiag.innerHTML = `
+        <div><strong>Cloud Host:</strong> ${escapeHtml(d.cloud?.cloud_host || "Microsoft Azure App Service")}</div>
         <div><strong>AI Engine:</strong> ${escapeHtml(d.active_ai_engine)}</div>
-        <div><strong>Database:</strong> ${escapeHtml(d.cloud?.dynamodb_mode)}</div>
-        <div><strong>Object Storage:</strong> ${escapeHtml(d.cloud?.s3_mode)}</div>
-        <div><strong>Notifications:</strong> ${escapeHtml(d.cloud?.sns_mode)}</div>
-        <div><strong>AWS Region:</strong> ${escapeHtml(d.cloud?.aws_region)}</div>
+        <div><strong>Persistence:</strong> ${escapeHtml(d.cloud?.storage_mode || d.cloud?.dynamodb_mode)}</div>
+        <div><strong>Photo Store:</strong> ${escapeHtml(d.cloud?.photo_mode || d.cloud?.s3_mode)}</div>
+        <div><strong>Notifications:</strong> ${escapeHtml(d.cloud?.notification_mode || d.cloud?.sns_mode)}</div>
       `;
     } catch (_err) {
       els.opsDot.classList.add("offline");
@@ -227,7 +227,7 @@
 
   async function updateTicketStatus(ticketId, status) {
     const msgEl = document.getElementById("inspector-action-msg");
-    if (msgEl) msgEl.textContent = "Updating status & dispatching SNS alert...";
+    if (msgEl) msgEl.textContent = "Updating status & dispatching citizen alert...";
     try {
       const res = await requestJson(`/tickets/${encodeURIComponent(ticketId)}/status`, {
         method: "PATCH",
@@ -237,7 +237,7 @@
       if (!res.ok) throw new Error(res.data.detail || "Update failed");
       await loadOperationsData();
       const postMsg = document.getElementById("inspector-action-msg");
-      if (postMsg) postMsg.textContent = `Status set to ${formatStatusLabel(status)}. SNS notification queued.`;
+      if (postMsg) postMsg.textContent = `Status set to ${formatStatusLabel(status)}. Citizen notification dispatched.`;
     } catch (err) {
       if (msgEl) msgEl.textContent = `Error: ${err.message}`;
     }
@@ -246,7 +246,7 @@
   function renderSnsTable() {
     if (!state.snsAlerts.length) {
       els.snsBody.innerHTML =
-        '<tr><td colspan="6" style="color:var(--ink-muted);text-align:center;padding:24px;">No SNS alerts dispatched yet. Dispatch or resolve a ticket to log alerts.</td></tr>';
+        '<tr><td colspan="6" style="color:var(--ink-muted);text-align:center;padding:24px;">No citizen notifications dispatched yet. Dispatch or resolve a ticket to log alerts.</td></tr>';
       return;
     }
 

@@ -147,7 +147,7 @@
               <img id="photo-preview" alt="Selected evidence" />
               <div style="flex:1;">
                 <div id="photo-filename" style="font-weight:600;font-size:13px;">photo.jpg</div>
-                <div style="font-size:12px;color:var(--ink-muted);">Ready for triage &amp; S3 upload</div>
+                <div style="font-size:12px;color:var(--ink-muted);">Ready for AI triage &amp; cloud storage</div>
               </div>
               <button type="button" id="clear-photo-btn" class="btn btn-outline btn-sm">Remove</button>
             </div>
@@ -222,10 +222,10 @@
         <button id="close-config-btn" class="btn btn-outline btn-sm" type="button">Close</button>
       </div>
       <p style="margin:0 0 12px;font-size:13px;color:var(--ink-muted);">
-        When hosting this Citizen Portal independently on Amazon S3, enter your Amazon API Gateway Invoke URL below.
+        When hosting this Citizen Portal separately (e.g., Azure Static Web Apps), enter your Azure App Service API URL below.
       </p>
       <label class="field-label" for="api-url-input">API Base URL</label>
-      <input id="api-url-input" type="url" placeholder="https://xxxxxxxx.execute-api.ap-south-1.amazonaws.com/prod" />
+      <input id="api-url-input" type="url" placeholder="https://civicsignal-api-afc4asafb9b4frfr.centralindia-01.azurewebsites.net" />
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
         <button id="save-config-btn" class="btn btn-primary btn-sm" type="button">Save &amp; Reconnect</button>
       </div>
