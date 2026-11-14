@@ -46,7 +46,8 @@
   function initMap() {
     if (!window.TamilNaduMap) return;
     state.map = window.TamilNaduMap.create("admin-map", {
-      height: 310,
+      height: 320,
+      style: "dataviz",
       initialMode: "state",
       onSelectTicket: (ticket) => {
         state.selectedTicketId = ticket.ticket_id;

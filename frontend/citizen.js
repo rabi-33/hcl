@@ -49,8 +49,10 @@
     const lng = parseFloat(els.longitude.value) || 80.097;
 
     state.map = window.TamilNaduMap.create("citizen-map", {
-      height: 290,
-      initialMode: "state",
+      height: 280,
+      style: "streets-v2",
+      initialMode: "chennai",
+      enableSearch: true,
       draftPin: { lat, lng, label: els.locationName.value },
       onPickLocation: ({ lat: pickedLat, lng: pickedLng, suggestedLabel }) => {
         els.latitude.value = Number(pickedLat).toFixed(4);
