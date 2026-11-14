@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CivicSignal — Cloud Smart Public Issue Reporting &amp; Triage</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="logo">CS</div>
+      <div>
+        <div class="brand-title">CivicSignal Cloud</div>
+        <div class="brand-sub">AI Vision Triage &bull; 150m Geo-Duplicate Merger &bull; AWS Serverless + Hybrid Fallback</div>
+      </div>
+    </div>
+    <div class="top-controls">
+      <span id="engine-pill" class="pill">Connecting API...</span>
+      <span id="cloud-pill" class="pill">AWS / Hybrid Mode</span>
+      <div class="api-box">
+        <input id="api-base-input" type="text" placeholder="API Gateway URL or http://localhost:8000" />
+        <button id="save-api-btn" class="btn btn-secondary btn-sm" type="button">Connect</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="citizen-tab" type="button">1. Citizen Reporting Portal</button>
+    <button class="tab-btn" data-tab="admin-tab" type="button">2. Municipal Admin Command Dashboard</button>
+  </nav>
+
+  <main class="layout">
+    <div>
+      <!-- TAB 1: CITIZEN REPORTING PORTAL -->
+      <section id="citizen-tab" class="tab-panel active">
+        <div class="split-2">
+          <div class="card">
+            <h2 class="card-title">
+              <span>Report a Public Issue</span>
+              <button id="seed-demo-btn" class="btn btn-secondary btn-sm" type="button">Load Sample Chennai Issues</button>
+            </h2>
+            <form id="report-form">
+              <div class="field">
+                <label for="issue-category">Issue Category</label>
+                <select id="issue-category" required>
+                  <option value="Pothole">Pothole</option>
+                  <option value="Garbage Accumulation">Garbage Accumulation</option>
+                  <option value="Damaged Streetlight">Damaged Streetlight</option>
+                  <option value="Water Leakage">Water Leakage</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Location Quick-Fill (Chennai Landmarks) &amp; GPS</label>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-secondary btn-sm landmark-btn" data-name="Anna Nagar Main Rd" data-lat="13.0850" data-lng="80.2101">Anna Nagar Main Rd</button>
+                  <button type="button" class="btn btn-secondary btn-sm landmark-btn" data-name="Vel Tech Avadi Rd" data-lat="13.1770" data-lng="80.0970">Vel Tech Avadi Rd</button>
+                  <button type="button" class="btn btn-secondary btn-sm landmark-btn" data-name="T. Nagar Bus Stand" data-lat="13.0418" data-lng="80.2341">T. Nagar Bus Stand</button>
+                  <button type="button" id="gps-btn" class="btn btn-success btn-sm">Auto-Detect GPS</button>
+                </div>
+                <input id="location-name" type="text" placeholder="Area / Landmark (e.g. Vel Tech Avadi Rd)" required />
+              </div>
+
+              <div class="field coords-row">
+                <div>
+                  <label for="latitude">Latitude</label>
+                  <input id="latitude" type="number" step="0.0001" value="13.1770" required />
+                </div>
+                <div>
+                  <label for="longitude">Longitude</label>
+                  <input id="longitude" type="number" step="0.0001" value="80.0970" required />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="issue-desc">Issue Description</label>
+                <textarea id="issue-desc" rows="3" placeholder="Describe hazard (e.g. Deep pothole near school gate on main road causing traffic risk)..." required></textarea>
+              </div>
+
+              <div class="field">
+                <label for="citizen-contact">Citizen Email / Phone (For Amazon SNS Alerts)</label>
+                <input id="citizen-contact" type="text" placeholder="citizen@veltech.edu.in or +91-98400XXXXX" />
+              </div>
+
+              <div class="field">
+                <label for="photo-input">Issue Photo (Gemini Vision Authenticity Check + S3)</label>
+                <div class="btn-group">
+                  <input id="photo-input" type="file" accept="image/*" style="flex:1;" />
+                  <button id="sample-photo-btn" class="btn btn-secondary btn-sm" type="button">Use Sample Photo</button>
+                </div>
+                <div id="photo-preview-box" class="preview-box" style="display:none;">
+                  <img id="photo-preview-img" alt="Issue preview" />
+                </div>
+              </div>
+
+              <button id="submit-btn" class="btn btn-primary" style="width:100%;" type="submit">
+                Submit &amp; Run AI Vision Triage
+              </button>
+            </form>
+            <div id="submit-banner" class="banner"></div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">
+              <span>Live Citizen Ticket Tracker</span>
+              <button id="refresh-citizen-btn" class="btn btn-secondary btn-sm" type="button">Refresh</button>
+            </h2>
+            <div id="citizen-tracker-list" class="ticket-list">
+              <div class="ticket-meta">Loading live tickets...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: MUNICIPAL ADMIN COMMAND DASHBOARD -->
+      <section id="admin-tab" class="tab-panel">
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div id="kpi-total" class="kpi-val">0</div>
+            <div class="kpi-lbl">Active Tickets</div>
+          </div>
+          <div class="kpi">
+            <div id="kpi-critical" class="kpi-val" style="color:#f87171;">0</div>
+            <div class="kpi-lbl">Critical Priority (&ge;80)</div>
+          </div>
+          <div class="kpi">
+            <div id="kpi-merged" class="kpi-val" style="color:#fdba74;">0</div>
+            <div class="kpi-lbl">Total Citizen Reports</div>
+          </div>
+          <div class="kpi">
+            <div id="kpi-sns" class="kpi-val" style="color:#34d399;">0</div>
+            <div class="kpi-lbl">SNS Alerts Sent</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h2 class="card-title">
+            <span>Priority Triage Queue (Sorted Highest Priority First)</span>
+            <button id="refresh-admin-btn" class="btn btn-secondary btn-sm" type="button">Refresh Queue</button>
+          </h2>
+          <div id="admin-ticket-list" class="ticket-list">
+            <div class="ticket-meta">Loading municipal queue...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">
+            <span>Amazon SNS Citizen Notification Log</span>
+          </h2>
+          <div id="sns-log-list">
+            <div class="ticket-meta">No status notifications triggered yet. Mark a ticket In-Progress or Resolved above to fire SNS alerts.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT SIDEBAR: CIVIC AI CO-PILOT CHAT WIDGET -->
+    <aside class="card copilot-card">
+      <h2 class="card-title">
+        <span>Civic AI Co-Pilot</span>
+        <span style="font-size:11px;color:#38bdf8;">Live Ticket Grounded</span>
+      </h2>
+      <div class="btn-group">
+        <button type="button" class="btn btn-secondary btn-sm qa-chip" data-q="Which ward or area has the most unresolved high-priority complaints right now?">Critical area?</button>
+        <button type="button" class="btn btn-secondary btn-sm qa-chip" data-q="Draft an urgent work-order notice for the top pothole ticket.">Work-order notice</button>
+        <button type="button" class="btn btn-secondary btn-sm qa-chip" data-q="Generate a repair dispatch summary for top 3 tickets.">Top 3 dispatch</button>
+      </div>
+      <div id="chat-log" class="chat-log">
+        <div class="chat-msg chat-bot">
+          Ask me anything about active civic issues, hotspots, or repair work orders.
+        </div>
+      </div>
+      <div class="btn-group" style="margin-bottom:0;">
+        <input id="chat-input" type="text" placeholder="Ask Civic AI Co-Pilot..." style="flex:1;" />
+        <button id="chat-send-btn" class="btn btn-primary btn-sm" type="button">Ask</button>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+backend/.env
+**/.env
+backend/local_tickets.json
+backend/local_sns_log.json
+backend/local_uploads/
+local_tickets.json
+local_sns_log.json
+local_uploads/
+.DS_Store
