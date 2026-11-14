@@ -44,29 +44,21 @@
   };
 
   function initMap() {
-    if (typeof L === "undefined") {
-      document.getElementById("citizen-map").innerHTML =
-        '<div style="padding:16px;font-size:12.5px;color:#475569;">Map tiles unavailable offline. Enter coordinates or pick a Chennai area chip above.</div>';
-      return;
-    }
+    if (!window.TamilNaduMap) return;
     const lat = parseFloat(els.latitude.value) || 13.177;
     const lng = parseFloat(els.longitude.value) || 80.097;
 
-    state.map = L.map("citizen-map", { zoomControl: true }).setView([lat, lng], 14);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: "&copy; OpenStreetMap &copy; CARTO",
-      maxZoom: 19
-    }).addTo(state.map);
-
-    state.marker = L.marker([lat, lng], { draggable: true }).addTo(state.map);
-    state.marker.on("dragend", () => {
-      const pos = state.marker.getLatLng();
-      els.latitude.value = pos.lat.toFixed(4);
-      els.longitude.value = pos.lng.toFixed(4);
-    });
-
-    state.map.on("click", (e) => {
-      setMapCoordinates(e.latlng.lat, e.latlng.lng);
+    state.map = window.TamilNaduMap.create("citizen-map", {
+      height: 290,
+      initialMode: "state",
+      draftPin: { lat, lng, label: els.locationName.value },
+      onPickLocation: ({ lat: pickedLat, lng: pickedLng, suggestedLabel }) => {
+        els.latitude.value = Number(pickedLat).toFixed(4);
+        els.longitude.value = Number(pickedLng).toFixed(4);
+        if (suggestedLabel) {
+          els.locationName.value = suggestedLabel;
+        }
+      }
     });
   }
 
@@ -74,9 +66,8 @@
     els.latitude.value = Number(lat).toFixed(4);
     els.longitude.value = Number(lng).toFixed(4);
     if (label) els.locationName.value = label;
-    if (state.map && state.marker) {
-      state.marker.setLatLng([lat, lng]);
-      state.map.setView([lat, lng], 15);
+    if (state.map) {
+      state.map.setDraftPin(lat, lng, label);
     }
   }
 
@@ -205,17 +196,15 @@
   els.latitude.addEventListener("change", () => {
     const lat = parseFloat(els.latitude.value);
     const lng = parseFloat(els.longitude.value);
-    if (!Number.isNaN(lat) && !Number.isNaN(lng) && state.marker && state.map) {
-      state.marker.setLatLng([lat, lng]);
-      state.map.setView([lat, lng]);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && state.map) {
+      state.map.setDraftPin(lat, lng, els.locationName.value);
     }
   });
   els.longitude.addEventListener("change", () => {
     const lat = parseFloat(els.latitude.value);
     const lng = parseFloat(els.longitude.value);
-    if (!Number.isNaN(lat) && !Number.isNaN(lng) && state.marker && state.map) {
-      state.marker.setLatLng([lat, lng]);
-      state.map.setView([lat, lng]);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && state.map) {
+      state.map.setDraftPin(lat, lng, els.locationName.value);
     }
   });
 

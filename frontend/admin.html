@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CivicSignal Operations — Municipal Dispatch &amp; Triage Console</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -96,7 +95,7 @@
                 <span style="font-size:12px;color:var(--ink-muted);">Click a pin to inspect ticket</span>
               </div>
               <div class="panel-body" style="padding:12px;">
-                <div id="admin-map" class="map-container" style="height:260px;"></div>
+                <div id="admin-map" class="map-container"></div>
               </div>
             </div>
 
@@ -242,8 +241,8 @@
     </main>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="shared.js"></script>
+  <script src="tn-map.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

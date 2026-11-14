@@ -54,6 +54,7 @@
 │   ├── admin.html             # Municipal Operations Console (Separate S3 Hosting Ready)
 │   ├── styles.css             # Enterprise GovTech design system
 │   ├── shared.js              # Shared API Gateway client & utilities
+│   ├── tn-map.js              # Interactive Tamil Nadu vector GIS map (0 external deps)
 │   ├── citizen.js             # Citizen map picker, drag-drop upload & status lookup
 │   └── admin.js               # Operations map, priority queue, inspector & SNS audit
 ├── backend/
@@ -88,8 +89,8 @@ uvicorn local_server:app --reload --port 8000
 Open **`http://localhost:8000`** for the Citizen Portal and **`http://localhost:8000/admin`** for the dedicated Municipal Operations Console.
 
 ### 2. Separate S3 Hosting (Production)
-- **Citizen Portal Bucket**: Upload `index.html`, `styles.css`, `shared.js`, `citizen.js` -> set your API Gateway URL via **API Endpoint** in the header.
-- **Municipal Operations Bucket**: Upload `admin.html` (as index document or `/admin.html`), `styles.css`, `shared.js`, `admin.js` -> set the same API Gateway URL in **Cloud & API Settings**.
+- **Citizen Portal Bucket**: Upload `index.html`, `styles.css`, `shared.js`, `tn-map.js`, `citizen.js` -> set your API Gateway URL via **API Endpoint** in the header.
+- **Municipal Operations Bucket**: Upload `admin.html` (as index document or `/admin.html`), `styles.css`, `shared.js`, `tn-map.js`, `admin.js` -> set the same API Gateway URL in **Cloud & API Settings**.
 
 ### 2. Run Automated Tests (`pytest`)
 From the repository root:

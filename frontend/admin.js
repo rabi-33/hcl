@@ -44,66 +44,21 @@
   };
 
   function initMap() {
-    if (typeof L === "undefined") {
-      document.getElementById("admin-map").innerHTML =
-        '<div style="padding:18px;font-size:12.5px;color:#475569;">Geospatial map tiles unavailable offline. Select tickets from the table below.</div>';
-      return;
-    }
-    state.map = L.map("admin-map").setView([13.095, 80.175], 11);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: "&copy; OpenStreetMap &copy; CARTO",
-      maxZoom: 19
-    }).addTo(state.map);
-    state.markersLayer = L.layerGroup().addTo(state.map);
+    if (!window.TamilNaduMap) return;
+    state.map = window.TamilNaduMap.create("admin-map", {
+      height: 310,
+      initialMode: "state",
+      onSelectTicket: (ticket) => {
+        state.selectedTicketId = ticket.ticket_id;
+        renderQueue();
+        renderInspector(ticket);
+      }
+    });
   }
 
   function renderMapPins(filteredTickets) {
-    if (!state.map || !state.markersLayer) return;
-    state.markersLayer.clearLayers();
-    const bounds = [];
-
-    filteredTickets.forEach((t) => {
-      const lat = Number(t.latitude);
-      const lng = Number(t.longitude);
-      if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-      bounds.push([lat, lng]);
-
-      const color =
-        t.priority_band === "CRITICAL"
-          ? "#dc2626"
-          : t.priority_band === "HIGH"
-          ? "#d97706"
-          : "#0284c7";
-
-      if (Number(t.duplicate_count || 1) > 1) {
-        L.circle([lat, lng], {
-          radius: 150,
-          color,
-          weight: 1,
-          fillColor: color,
-          fillOpacity: 0.12
-        }).addTo(state.markersLayer);
-      }
-
-      const marker = L.circleMarker([lat, lng], {
-        radius: 7 + Math.min(6, Number(t.duplicate_count || 1) * 1.5),
-        color: "#ffffff",
-        weight: 2,
-        fillColor: color,
-        fillOpacity: 0.92
-      }).addTo(state.markersLayer);
-
-      marker.bindTooltip(`${t.ticket_id}: ${t.category} (${t.priority_score}/100)`);
-      marker.on("click", () => {
-        state.selectedTicketId = t.ticket_id;
-        renderQueue();
-        renderInspector(t);
-      });
-    });
-
-    if (bounds.length > 0) {
-      state.map.fitBounds(bounds, { padding: [26, 26], maxZoom: 14 });
-    }
+    if (!state.map) return;
+    state.map.setTickets(filteredTickets, state.selectedTicketId);
   }
 
   async function refreshHealth() {
@@ -356,7 +311,7 @@
       });
       els.viewHeading.textContent = VIEW_TITLES[target] || "Operations Console";
       if (target === "view-dispatch" && state.map) {
-        setTimeout(() => state.map.invalidateSize(), 120);
+        state.map.render();
       }
     });
   });

@@ -200,6 +200,22 @@ def seed_demo_tickets() -> Dict[str, Any]:
             "longitude": 80.2101,
             "citizen_contact": "resident@annanagar.in",
         },
+        {
+            "category": "Garbage Accumulation",
+            "description": "Overflowing waste collection bin blocking school bus lane near RS Puram.",
+            "location_name": "Coimbatore RS Puram",
+            "latitude": 11.0168,
+            "longitude": 76.9558,
+            "citizen_contact": "civic.cbe@civicsignal.in",
+        },
+        {
+            "category": "Pothole",
+            "description": "Heavy road crater causing bus traffic congestion near Periyar Bus Stand.",
+            "location_name": "Madurai Periyar Bus Stand",
+            "latitude": 9.9252,
+            "longitude": 78.1198,
+            "citizen_contact": "madurai.ward4@civicsignal.in",
+        },
     ]
 
     created: List[Dict[str, Any]] = []
