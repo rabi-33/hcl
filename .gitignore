@@ -13,3 +13,4 @@ local_tickets.json
 local_sns_log.json
 local_uploads/
 .DS_Store
+dist/
