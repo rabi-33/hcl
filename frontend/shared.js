@@ -1,10 +1,13 @@
 /* CivicSignal Shared API Client & Utilities */
 
 window.CivicApi = (() => {
+  const DEPLOYED_AZURE_API = "https://civicsignal-api-afc4asafb9b4frfr.centralindia-01.azurewebsites.net";
   const DEFAULT_API_BASE =
-    window.location.protocol.startsWith("http") && window.location.port !== ""
+    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? window.location.origin
-      : "http://localhost:8000";
+      : window.location.hostname.endsWith("azurewebsites.net")
+      ? window.location.origin
+      : DEPLOYED_AZURE_API;
 
   function getBaseUrl() {
     return (localStorage.getItem("civicsignal_api_base") || DEFAULT_API_BASE).replace(/\/+$/, "");
