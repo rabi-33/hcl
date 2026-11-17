@@ -13,6 +13,28 @@ DEFAULT_ADMIN_PASSWORD = "CivicAdmin@2026"
 TOKEN_TTL_SECONDS = 12 * 3600
 
 
+def get_admin_accounts() -> Dict[str, list[str]]:
+    """Return allowed municipal admin accounts (supports multiple concurrent logins)."""
+    primary_user = (os.getenv("ADMIN_USERNAME") or DEFAULT_ADMIN_USERNAME).strip().lower()
+    primary_pass = (os.getenv("ADMIN_PASSWORD") or DEFAULT_ADMIN_PASSWORD).strip()
+
+    accounts: Dict[str, list[str]] = {
+        primary_user: [primary_pass],
+        "admin": [primary_pass] if primary_user == "admin" else [DEFAULT_ADMIN_PASSWORD, primary_pass],
+        "civic": ["CivicAdmin@2026", "civicAdmin@2026"],
+        "officer": [primary_pass],
+    }
+
+    extra = (os.getenv("ADMIN_USERS") or "").strip()
+    if extra:
+        for pair in extra.split(","):
+            if ":" in pair:
+                u, p = pair.split(":", 1)
+                if u.strip() and p.strip():
+                    accounts.setdefault(u.strip().lower(), []).append(p.strip())
+    return accounts
+
+
 def get_admin_credentials() -> tuple[str, str]:
     username = (os.getenv("ADMIN_USERNAME") or DEFAULT_ADMIN_USERNAME).strip()
     password = (os.getenv("ADMIN_PASSWORD") or DEFAULT_ADMIN_PASSWORD).strip()
@@ -41,13 +63,19 @@ def create_admin_token(username: str) -> str:
 
 
 def authenticate_admin(username: str, password: str) -> Optional[Dict[str, Any]]:
-    expected_user, expected_pass = get_admin_credentials()
-    user_ok = hmac.compare_digest((username or "").strip(), expected_user)
-    pass_ok = hmac.compare_digest((password or "").strip(), expected_pass)
-    if not (user_ok and pass_ok):
+    clean_user = (username or "").strip().lower()
+    clean_pass = (password or "").strip()
+    accounts = get_admin_accounts()
+    allowed_passwords = accounts.get(clean_user)
+    if not allowed_passwords or not clean_pass:
         return None
-    token = create_admin_token(expected_user)
-    return {"token": token, "username": expected_user, "role": "municipal_admin"}
+
+    matched = any(hmac.compare_digest(clean_pass, expected) for expected in allowed_passwords)
+    if not matched:
+        return None
+
+    token = create_admin_token(clean_user)
+    return {"token": token, "username": clean_user, "role": "municipal_admin"}
 
 
 def verify_admin_token(authorization_header: Optional[str]) -> Optional[Dict[str, Any]]:

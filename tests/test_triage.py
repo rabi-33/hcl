@@ -105,7 +105,7 @@ def _get_admin_headers() -> dict:
 
 
 def test_admin_auth_guards_and_login():
-    """Admin routes reject unauthenticated or invalid logins and accept valid tokens."""
+    """Admin routes reject unauthenticated or invalid logins and support multiple concurrent logins."""
     bad_login = client.post("/admin/login", json={"username": "admin", "password": "wrong-password"})
     assert bad_login.status_code == 401
 
@@ -115,10 +115,18 @@ def test_admin_auth_guards_and_login():
     seed_unauth = client.post("/tickets/seed")
     assert seed_unauth.status_code == 401
 
-    headers = _get_admin_headers()
-    me_auth = client.get("/admin/me", headers=headers)
-    assert me_auth.status_code == 200
-    assert me_auth.json()["authenticated"] is True
+    headers_admin = _get_admin_headers()
+    me_admin = client.get("/admin/me", headers=headers_admin)
+    assert me_admin.status_code == 200
+    assert me_admin.json()["authenticated"] is True
+
+    # Multiple concurrent admin logins (e.g. 'civic' and 'admin' active simultaneously)
+    civic_login = client.post("/admin/login", json={"username": "civic", "password": "civicAdmin@2026"})
+    assert civic_login.status_code == 200
+    headers_civic = {"Authorization": f"Bearer {civic_login.json()['token']}"}
+
+    assert client.get("/admin/me", headers=headers_civic).status_code == 200
+    assert client.get("/admin/me", headers=headers_admin).status_code == 200
 
 
 def test_resolved_tickets_are_not_merged():
