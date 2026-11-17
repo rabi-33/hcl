@@ -217,6 +217,7 @@ h1, h2, h3, .font-display {
 }
 
 input[type="text"],
+input[type="password"],
 input[type="number"],
 input[type="url"],
 select,
@@ -959,4 +960,57 @@ textarea:focus {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
   padding: 20px;
+}
+
+/* Municipal Officer Sign-In Gate */
+.admin-login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 45%, #f4f6f9 45.1%, #f4f6f9 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+}
+
+.login-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  padding-right: 68px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.password-toggle-btn:hover {
+  color: var(--ink);
 }

@@ -6,6 +6,7 @@ import os
 import re
 from typing import Any, Dict
 
+from core.auth import authenticate_admin, verify_admin_token
 from core.service import (
     get_all_tickets_payload,
     get_health_status,
@@ -59,6 +60,11 @@ def _parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
     return json.loads(raw_body)
 
 
+def _get_auth_header(event: Dict[str, Any]) -> str:
+    headers = event.get("headers") or {}
+    return headers.get("Authorization") or headers.get("authorization") or ""
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any = None) -> Dict[str, Any]:
     """Handle API Gateway HTTP requests for CivicSignal."""
     method, path = _extract_method_and_path(event)
@@ -68,6 +74,19 @@ def lambda_handler(event: Dict[str, Any], _context: Any = None) -> Dict[str, Any
         return _response(200, {"ok": True})
 
     try:
+        if method == "POST" and path == "/admin/login":
+            payload = _parse_body(event)
+            session = authenticate_admin(str(payload.get("username", "")), str(payload.get("password", "")))
+            if not session:
+                return _response(401, {"error": "Invalid municipal username or password."})
+            return _response(200, session)
+
+        if method == "GET" and path == "/admin/me":
+            session = verify_admin_token(_get_auth_header(event))
+            if not session:
+                return _response(401, {"error": "Admin authentication required."})
+            return _response(200, {"authenticated": True, "username": session.get("sub"), "role": session.get("role")})
+
         if method == "GET" and path in ("/", "/health"):
             return _response(200, get_health_status())
 
@@ -79,10 +98,14 @@ def lambda_handler(event: Dict[str, Any], _context: Any = None) -> Dict[str, Any
             return _response(code, body)
 
         if method == "POST" and path == "/tickets/seed":
+            if not verify_admin_token(_get_auth_header(event)):
+                return _response(401, {"error": "Admin authentication required."})
             return _response(200, seed_demo_tickets())
 
         status_match = re.match(r"^/tickets/([^/]+)/status$", path)
         if method in ("PATCH", "POST") and status_match:
+            if not verify_admin_token(_get_auth_header(event)):
+                return _response(401, {"error": "Admin authentication required."})
             ticket_id = status_match.group(1)
             payload = _parse_body(event)
             code, body = update_ticket_status(ticket_id, str(payload.get("status", "")))

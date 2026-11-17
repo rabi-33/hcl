@@ -1,18 +1,38 @@
 /* CivicSignal Municipal Operations Console Controller */
 
 (() => {
-  const { requestJson, escapeHtml, formatStatusLabel, formatRelativeTime, getBaseUrl, setBaseUrl } =
-    window.CivicApi;
+  const {
+    requestJson,
+    escapeHtml,
+    formatStatusLabel,
+    formatRelativeTime,
+    getBaseUrl,
+    setBaseUrl,
+    getAdminToken,
+    setAdminToken,
+    clearAdminToken,
+    getAdminAuthHeaders
+  } = window.CivicApi;
 
   const state = {
     tickets: [],
     snsAlerts: [],
     selectedTicketId: null,
     map: null,
-    markersLayer: null
+    markersLayer: null,
+    initialized: false
   };
 
   const els = {
+    loginScreen: document.getElementById("admin-login-screen"),
+    adminShell: document.getElementById("admin-shell"),
+    loginForm: document.getElementById("admin-login-form"),
+    loginUser: document.getElementById("login-username"),
+    loginPass: document.getElementById("login-password"),
+    togglePassBtn: document.getElementById("toggle-password-btn"),
+    loginSubmitBtn: document.getElementById("login-submit-btn"),
+    loginError: document.getElementById("login-error-notice"),
+    logoutBtn: document.getElementById("admin-logout-btn"),
     viewHeading: document.getElementById("view-heading"),
     opsDot: document.getElementById("ops-dot"),
     opsEngineText: document.getElementById("ops-engine-text"),
@@ -231,9 +251,13 @@
     try {
       const res = await requestJson(`/tickets/${encodeURIComponent(ticketId)}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ status })
       });
+      if (res.status === 401) {
+        signOut("Session expired. Please sign in again.");
+        return;
+      }
       if (!res.ok) throw new Error(res.data.detail || "Update failed");
       await loadOperationsData();
       const postMsg = document.getElementById("inspector-action-msg");
@@ -343,7 +367,14 @@
   });
 
   document.getElementById("ops-seed-btn").addEventListener("click", async () => {
-    const res = await requestJson("/tickets/seed", { method: "POST" });
+    const res = await requestJson("/tickets/seed", {
+      method: "POST",
+      headers: getAdminAuthHeaders()
+    });
+    if (res.status === 401) {
+      signOut("Session expired. Please sign in again.");
+      return;
+    }
     els.settingsNotice.textContent = res.data.seeded
       ? `Initialized ${res.data.count} baseline municipal tickets.`
       : res.data.message || "Tickets already present.";
@@ -351,7 +382,90 @@
     await loadOperationsData();
   });
 
-  initMap();
-  refreshHealth();
-  loadOperationsData();
+  function showConsole() {
+    els.loginScreen.style.display = "none";
+    els.adminShell.style.display = "grid";
+    if (!state.initialized) {
+      initMap();
+      state.initialized = true;
+    } else if (state.map) {
+      state.map.render();
+    }
+    refreshHealth();
+    loadOperationsData();
+  }
+
+  function signOut(message = "") {
+    clearAdminToken();
+    els.adminShell.style.display = "none";
+    els.loginScreen.style.display = "flex";
+    els.loginPass.value = "";
+    if (message) {
+      els.loginError.textContent = message;
+      els.loginError.className = "notice notice-error show";
+    } else {
+      els.loginError.className = "notice notice-error";
+    }
+  }
+
+  els.togglePassBtn.addEventListener("click", () => {
+    const isPassword = els.loginPass.type === "password";
+    els.loginPass.type = isPassword ? "text" : "password";
+    els.togglePassBtn.textContent = isPassword ? "Hide" : "Show";
+  });
+
+  els.logoutBtn.addEventListener("click", () => signOut());
+
+  els.loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    els.loginError.className = "notice notice-error";
+    els.loginSubmitBtn.disabled = true;
+    els.loginSubmitBtn.textContent = "Verifying Credentials...";
+
+    try {
+      const res = await requestJson("/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: els.loginUser.value.trim(),
+          password: els.loginPass.value
+        })
+      });
+
+      if (!res.ok || !res.data.token) {
+        els.loginError.textContent = res.data.detail || res.data.error || "Invalid municipal username or password.";
+        els.loginError.className = "notice notice-error show";
+        return;
+      }
+
+      setAdminToken(res.data.token);
+      showConsole();
+    } catch (_err) {
+      els.loginError.textContent = "Unable to reach authentication server.";
+      els.loginError.className = "notice notice-error show";
+    } finally {
+      els.loginSubmitBtn.disabled = false;
+      els.loginSubmitBtn.textContent = "Sign In to Operations Console";
+    }
+  });
+
+  async function bootstrapAdminAuth() {
+    const token = getAdminToken();
+    if (!token) {
+      signOut();
+      return;
+    }
+    try {
+      const res = await requestJson("/admin/me", { headers: getAdminAuthHeaders() });
+      if (res.ok && res.data.authenticated) {
+        showConsole();
+        return;
+      }
+    } catch (_err) {
+      // Fallback to login screen
+    }
+    signOut();
+  }
+
+  bootstrapAdminAuth();
 })();

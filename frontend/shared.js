@@ -56,6 +56,23 @@ window.CivicApi = (() => {
     return { ok: resp.ok, status: resp.status, data };
   }
 
+  function getAdminToken() {
+    return sessionStorage.getItem("civicsignal_admin_token") || "";
+  }
+
+  function setAdminToken(token) {
+    if (token) sessionStorage.setItem("civicsignal_admin_token", token);
+  }
+
+  function clearAdminToken() {
+    sessionStorage.removeItem("civicsignal_admin_token");
+  }
+
+  function getAdminAuthHeaders(extra = {}) {
+    const token = getAdminToken();
+    return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+  }
+
   return {
     getBaseUrl,
     setBaseUrl,
@@ -63,6 +80,10 @@ window.CivicApi = (() => {
     escapeHtml,
     formatStatusLabel,
     formatRelativeTime,
-    requestJson
+    requestJson,
+    getAdminToken,
+    setAdminToken,
+    clearAdminToken,
+    getAdminAuthHeaders
   };
 })();

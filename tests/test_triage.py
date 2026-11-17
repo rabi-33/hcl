@@ -97,6 +97,30 @@ def test_haversine_150m_duplicate_merging_and_priority_boost():
     assert far_res.json()["ticket"]["ticket_id"] != ticket_id
 
 
+def _get_admin_headers() -> dict:
+    login_res = client.post("/admin/login", json={"username": "admin", "password": "CivicAdmin@2026"})
+    assert login_res.status_code == 200
+    token = login_res.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_admin_auth_guards_and_login():
+    """Admin routes reject unauthenticated or invalid logins and accept valid tokens."""
+    bad_login = client.post("/admin/login", json={"username": "admin", "password": "wrong-password"})
+    assert bad_login.status_code == 401
+
+    me_unauth = client.get("/admin/me")
+    assert me_unauth.status_code == 401
+
+    seed_unauth = client.post("/tickets/seed")
+    assert seed_unauth.status_code == 401
+
+    headers = _get_admin_headers()
+    me_auth = client.get("/admin/me", headers=headers)
+    assert me_auth.status_code == 200
+    assert me_auth.json()["authenticated"] is True
+
+
 def test_resolved_tickets_are_not_merged():
     """Once an issue is marked RESOLVED, a new report at the same GPS opens a fresh ticket."""
     r1 = client.post(
@@ -111,7 +135,12 @@ def test_resolved_tickets_are_not_merged():
     )
     tid = r1.json()["ticket"]["ticket_id"]
 
-    status_res = client.patch(f"/tickets/{tid}/status", json={"status": "RESOLVED"})
+    # Unauthenticated status update must be blocked
+    unauth_status = client.patch(f"/tickets/{tid}/status", json={"status": "RESOLVED"})
+    assert unauth_status.status_code == 401
+
+    headers = _get_admin_headers()
+    status_res = client.patch(f"/tickets/{tid}/status", json={"status": "RESOLVED"}, headers=headers)
     assert status_res.status_code == 200
     assert status_res.json()["ticket"]["status"] == "RESOLVED"
     assert status_res.json()["sns_alert"]["ticket_id"] == tid
@@ -180,13 +209,33 @@ def test_gemini_vision_authenticity_rejection_and_rate_limit_fallback(monkeypatc
 
 
 def test_lambda_handler_and_civic_chat():
-    """AWS Lambda handler supports /health, /tickets/seed, /tickets, and /chat."""
+    """AWS Lambda handler supports /health, /admin/login, /tickets/seed, and /chat."""
     health_evt = {"httpMethod": "GET", "path": "/health"}
     h_resp = lambda_function.lambda_handler(health_evt)
     assert h_resp["statusCode"] == 200
     assert json.loads(h_resp["body"])["service"] == "CivicSignal Cloud Triage API"
 
-    seed_resp = lambda_function.lambda_handler({"httpMethod": "POST", "path": "/tickets/seed"})
+    # Unauthenticated seed blocked on Lambda too
+    unauth_seed = lambda_function.lambda_handler({"httpMethod": "POST", "path": "/tickets/seed"})
+    assert unauth_seed["statusCode"] == 401
+
+    login_resp = lambda_function.lambda_handler(
+        {
+            "httpMethod": "POST",
+            "path": "/admin/login",
+            "body": json.dumps({"username": "admin", "password": "CivicAdmin@2026"}),
+        }
+    )
+    assert login_resp["statusCode"] == 200
+    token = json.loads(login_resp["body"])["token"]
+
+    seed_resp = lambda_function.lambda_handler(
+        {
+            "httpMethod": "POST",
+            "path": "/tickets/seed",
+            "headers": {"Authorization": f"Bearer {token}"},
+        }
+    )
     assert seed_resp["statusCode"] == 200
     assert json.loads(seed_resp["body"])["seeded"] is True
 

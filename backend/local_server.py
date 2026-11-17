@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +17,7 @@ try:
 except ImportError:
     pass
 
+from core.auth import authenticate_admin, verify_admin_token
 from core.service import (
     get_all_tickets_payload,
     get_health_status,
@@ -61,6 +62,32 @@ class ChatRequest(BaseModel):
     question: str
 
 
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+def _require_admin(authorization: Optional[str]) -> dict:
+    session = verify_admin_token(authorization)
+    if not session:
+        raise HTTPException(status_code=401, detail="Admin authentication required.")
+    return session
+
+
+@app.post("/admin/login")
+def admin_login(req: AdminLoginRequest):
+    session = authenticate_admin(req.username, req.password)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid municipal username or password.")
+    return session
+
+
+@app.get("/admin/me")
+def admin_me(authorization: Optional[str] = Header(default=None)):
+    session = _require_admin(authorization)
+    return {"authenticated": True, "username": session.get("sub"), "role": session.get("role")}
+
+
 @app.get("/health")
 def health():
     return get_health_status()
@@ -78,13 +105,19 @@ def create_ticket(req: ReportRequest):
 
 
 @app.post("/tickets/seed")
-def seed_tickets():
+def seed_tickets(authorization: Optional[str] = Header(default=None)):
+    _require_admin(authorization)
     return seed_demo_tickets()
 
 
 @app.patch("/tickets/{ticket_id}/status")
 @app.post("/tickets/{ticket_id}/status")
-def patch_ticket_status(ticket_id: str, req: StatusUpdateRequest):
+def patch_ticket_status(
+    ticket_id: str,
+    req: StatusUpdateRequest,
+    authorization: Optional[str] = Header(default=None),
+):
+    _require_admin(authorization)
     code, body = update_ticket_status(ticket_id, req.status)
     if code >= 400:
         raise HTTPException(status_code=code, detail=body.get("error", "Status update failed"))
